@@ -18,61 +18,70 @@ Output: "bb"
 
 import math
 
-
-def reverse(text):
-    if len(text) <= 1:
-        return text
-    return reverse(text[1:]) + text[0]
-
 class Solution(object):
     def longestPalindrome(self, s):
 
         return self.solution1(s)
 
+    def checkIsPStringWithCenterString(self, mainString, centerIndex, offset):
+        if offset + centerIndex >= len(mainString) or centerIndex - offset < 0:
+            return False
+        return mainString[offset + centerIndex] == mainString[centerIndex - offset]
 
+    def checkIsPStingWithTwoCenterString(self, mainString, centerIndex, offset):# will always acent check
+        if offset + centerIndex + 1 >= len(mainString) or centerIndex - offset < 0:
+            return False
+        return mainString[centerIndex - offset] == mainString[centerIndex + 1 + offset]
 
     def solution1(self, s):
-        theMaxLenght = 0
-        result = ''
+        result = s[0]
         length = len(s)
         i = 0
-        cache = {}
-        maxLengthOfPString = math.floor(len(s) / 2)
-        print maxLengthOfPString
+        maxLengthOfHPString = math.floor(len(s) / 2)
+        #print maxLengthOfHPString
+        if maxLengthOfHPString == 0:
+            return s
         while i < length:
             character = s[i]
-            j = 0
-            while j <= maxLengthOfPString:
-                print i , i + j
-                if i + j >= length:
-                    break;
-                cacheKey = s[i:i+j]
-                cache[cacheKey] = i
-                print reverse(cacheKey), cacheKey, cache
-                if cache.has_key(reverse(cacheKey)):
-                    if len(cacheKey) * 2 > theMaxLenght or len(cacheKey) * 2 + 1 > theMaxLenght:
-                        if (cache[reverse(cacheKey)] + len(cacheKey)) == cache[cacheKey]:
-                            theMaxLenght = len(cacheKey) * 2
-                            result = reverse(cacheKey) + cacheKey
-
-                        elif cache[cacheKey] + len(cacheKey) == cache[reverse(cacheKey)]:
-                            theMaxLenght = len(cacheKey) * 2
-                            result = cacheKey + reverse(cacheKey)
-
-                        elif cache[reverse(cacheKey)] + len(cacheKey)+ 1 == cache[cacheKey]:
-                            theMaxLenght = len(cacheKey) * 2 + 1
-                            result = reverse(cacheKey) + s[cache[reverse(cacheKey)] + len(cacheKey) + 1] + cacheKey
-
-                        elif cache[cacheKey] + len(cacheKey)+ 1 == cache[reverse(cacheKey)]:
-                            theMaxLenght = len(cacheKey) * 2 + 1
-                            result = cacheKey + s[cache[cacheKey] + len(cacheKey)+ 1] + reverse(cacheKey)
+            j = 1
+            theOffset = 0
+            if i + 1 < length and character == s[i + 1]:# two center
+                if len(result) < 2:
+                    result = s[i : i + 2]
+                while j <= maxLengthOfHPString:
+                    isP = self.checkIsPStingWithTwoCenterString(s, i, j)
+                    if isP == False:
+                        j -= 1
+                        theOffset = j
+                        break
+                    theOffset = j
+                    j += 1
+                if theOffset > 0 and 2 + theOffset * 2 > len(result):
+                    result = s[i - theOffset: i + 2 + theOffset]
+                # if theOffset > 0:
+                #     print "Found (2)center Index : ", i, " offset:", theOffset, ' foundresult:', s[i - theOffset: i + 2 + theOffset]
+            #always check whether it is center string
+            theOffset = 0
+            j = 1
+            while j <= maxLengthOfHPString:
+                isP = self.checkIsPStringWithCenterString(s, i, j)
+                if isP == False:
+                    j -= 1
+                    theOffset = j
+                    break
+                theOffset = j
                 j += 1
+            if theOffset > 0 and 1 + theOffset * 2 > len(result):
+                result = s[i - theOffset: i + 1 + theOffset]
+            # if theOffset > 0:
+            #     print "Found (1)center Index : " , i , " offset:" , theOffset, ' foundresult:', s[i - theOffset: i + 1 + theOffset]
+            # if len(result) > 0:
+            #     print "maxResult:", result
             i += 1
-        print cache
         return result
 
 def main():
-    testCase = "babad"
+    testCase = "cewwefwfwefcc"
     s = Solution()
     print s.longestPalindrome(testCase)
 
