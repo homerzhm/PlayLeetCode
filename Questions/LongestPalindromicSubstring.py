@@ -21,7 +21,45 @@ import math
 class Solution(object):
     def longestPalindrome(self, s):
 
-        return self.solution1(s)
+        return self.solution2_manacher_algorithm(s)
+
+    def preprocessForString(self, string): # put prefix and postfix for abvoid dealing bonce
+        result = "^#"
+        for c in string:
+            result += (c + "#")
+        result += "$"
+        return result
+
+    def solution2_manacher_algorithm(self, s):
+        processed = self.preprocessForString(s)
+        centerIndex = 0
+        rightBound = 0
+        i = 1
+        cached = {}
+        print processed
+        while i < len(processed) - 1:
+            i_mirror = 2 * centerIndex - i
+            cached[i] = min(rightBound - i, cached[i_mirror]) if rightBound > i else 0
+
+            while (processed[i + 1 + cached[i]] == processed[i - 1 - cached[i]]):
+                cached[i] += 1
+
+            if i + cached[i] > rightBound:
+                centerIndex = i
+                rightBound = centerIndex + cached[i]
+            i += 1
+            print cached , " centerIndex:", centerIndex, " length:", cached[centerIndex]
+        print cached
+        theMaxLength = 0
+        theMaxCenterIndex = 0
+        for index in range(1, len(processed) - 1):
+            if theMaxLength < cached[index]:
+                theMaxLength = cached [index]
+                theMaxCenterIndex = index
+
+        print theMaxCenterIndex , '   center: ', processed[theMaxCenterIndex]
+        return s[(theMaxCenterIndex - 1 - theMaxLength)/2: (theMaxCenterIndex - 1 - theMaxLength)/2 + theMaxLength]
+
 
     def checkIsPStringWithCenterString(self, mainString, centerIndex, offset):
         if offset + centerIndex >= len(mainString) or centerIndex - offset < 0:
@@ -81,9 +119,9 @@ class Solution(object):
         return result
 
 def main():
-    testCase = "cewwefwfwefcc"
+    testCase = "babcbabcbaccba"#wabcbabcbabzba
     s = Solution()
-    print s.longestPalindrome(testCase)
-
+    print "solution 2: " + s.solution2_manacher_algorithm(testCase)
+    print "solution 1: " + s.solution1(testCase)
 if __name__ == '__main__':
     main()
