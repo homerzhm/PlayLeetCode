@@ -28,6 +28,7 @@ Output: 1
 
 """
 
+
 class Solution(object):
     def change(self, amount, coins):
         """
@@ -35,38 +36,119 @@ class Solution(object):
         :type coins: List[int]
         :rtype: int
         """
-        return self.solution1(amount, coins)
+        return self.fillMatrixSolution(amount, coins)
+
+    def solution2(self, amount, coins):
+        cache = [0] * (amount + 1)
+        cache[0] = 1
+        for i in coins:
+            print "coin :", i
+            for j in range(1, amount + 1):
+                if j >= i:
+                    cache[j] += cache[j - i]
+                print "j:",j, " cache:", cache[j]
+        return cache[amount]
+
+    def fillMatrixSolution(self, amount, coins):
+
+        # because there will be amout == 0 and no coin
+        matrix = [[0 for x in  range(0, amount + 1)] for y in range(0, len(coins) + 1)]
+        #if amount is 0, only 1 way
+        for index in range(0, len(coins) + 1):
+            matrix[index][0] = 1
+
+        #if no coin, 0 ways
+        for index in range(1, amount + 1):
+            matrix[0][index] = 0
+
+
+        for coinIndex in range(1, len(coins) + 1):
+            for the_value in range(1, amount + 1):
+                if coins[coinIndex - 1] <= the_value:
+                    matrix[coinIndex][the_value] = matrix[coinIndex - 1][the_value] + matrix[coinIndex][the_value - coins[coinIndex - 1]]
+                else:
+                    matrix[coinIndex][the_value] = matrix[coinIndex - 1][the_value]
+
+        for index in range(0, len(matrix)):
+            print matrix[index]
+
+        return matrix[len(coins)][amount]
+
 
     def solution1(self, amount, coins):
-        cached = {}
+        coin_dic = {}
+        itom_coin = {}
         sortedCoins = sorted(coins)
+        result = 0
+        processed = False
         for index in range(0, len(sortedCoins)):
             coinValue = sortedCoins[index]
-            modValue = amount % coinValue
-            repeat = amount / coinValue
-            if modValue == 0:
-                pass
-            else:
-                i = index - 1
-                bool found = False
-                while i > 0:
-                    if modValue == sortedCoins[i]:
-                        found = True
-                        break
-                if found:
-                    pass
-                pass
+            # first one, create Dic count for it
+            if index == 0:
+                coin_dic[coinValue] = 1
+                itom_coin[coinValue] = 1
+                continue
+            # others, Do the coin Dic Initial.
+            self.createDataByCoin(coin_dic, sortedCoins, index - 1, coinValue, True, itom_coin)
+            if coinValue > amount:
+                self.createDataByCoin(coin_dic, sortedCoins, index - 1, amount, False, itom_coin)
+                result = coin_dic[amount]
+                processed = True
+                break
+        print "coint Dic :", coin_dic
+        if not processed:
+            self.createDataByCoin(coin_dic, sortedCoins, len(sortedCoins) - 1, amount, False, itom_coin)
+            result = coin_dic[amount]
+        print "coint Dic finish :", coin_dic
+        print "itom Dic finish :", itom_coin
 
-    def breakCoinIntoMoreSmall(self, ):
+        return result
+
+    def createDataByCoin(self, coin_dic, sorted_coin, endIndex, the_value, is_value_belong, itom_coin):
+        index = endIndex
+        count = 0
+        if is_value_belong == True:
+            count = 1
+        while index >= 0:
+            coin_value = sorted_coin[index]
+
+            number = the_value / coin_value
+            modValue = the_value % coin_value
+
+            cannotCombine = False
+            print " the Value:",the_value, " Coin_value:", coin_value, " numbeR:", number, "  mod:", modValue
+            if modValue > 0:
+                if coin_dic.has_key(modValue):
+                    if coin_dic[modValue] == 0:
+                        cannotCombine = True
+                else:
+                    self.createDataByCoin(coin_dic, sorted_coin, endIndex - 1, modValue, False)
+                    if coin_dic[modValue] == 0:
+                        cannotCombine = True
+
+            if not cannotCombine:
+                if modValue > 0:
+                    count += coin_dic[modValue]
+                else:
+                    count += 1
+
+                if number > 0:
+                    count += (number - 1) * (coin_dic[coin_value] - 1)
+            index -= 1
+
+        if count == 1 or (count == 2 and is_value_belong):
+            itom_coin[the_value] = count
+        coin_dic[the_value] = count
 
 
 def main():
-
-    testCaseParam1 = 5
+    testCaseParam1 = 15
     testCaseParam2 = [1, 2, 5]
     s = Solution()
-    print s.change(testCaseParam1, testCaseParam2)
+    result = s.change(testCaseParam1, testCaseParam2)
+    print "The Result : ", result
     pass
+
 
 if __name__ == '__main__':
     main()
