@@ -28,25 +28,70 @@ Test Case:
 
 """
 
+valueKey = "valueKey"
+countKey = "countKey"
+historyKey = "historyKey"
 
 class LFUCache(object):
-
-    keyForValue = "keyForValue"
-    keyForCount = "keyForCount"
-
 
     def __init__(self, capacity):
         """
         :type capacity: int
         """
+        if capacity < 0:
+            capacity = 0
         self.capacity = capacity
+        self.cachedDic = {}
+        self.operationCount = 0
+        self.evitKeys = []
 
+    def updateEvitKeys(self, key, isNew = False):
+        if isNew:
+            shouldReCreate = False
+            for index in self.evitKeys:
+                if self.cachedDic[index][countKey] != 1:
+                    shouldReCreate = True
+                    break
+            if shouldReCreate:
+                self.evitKeys = []
+            self.evitKeys.append(key)
+        else:
+            for eKey in self.evitKeys:
+                if eKey == key:
+                    self.evitKeys.remove(eKey)
+                    break
+            if len(self.evitKeys) == 0:
+                lowestKeyCount = None
+                keysForLowestKeyCount = []
+                for key in self.cachedDic.keys():
+                    c = self.cachedDic[key]
+                    if lowestKeyCount == None:
+                        lowestKeyCount = c[countKey]
+                        keysForLowestKeyCount.append(key)
+                        continue
+                    if c[countKey] < lowestKeyCount:
+                        lowestKeyCount = c[countKey]
+                        keysForLowestKeyCount = []
+                        keysForLowestKeyCount.append(key)
+                    elif c[countKey] == lowestKeyCount:
+                        keysForLowestKeyCount.append(key)
+                self.evitKeys = keysForLowestKeyCount
 
     def get(self, key):
         """
         :type key: int
         :rtype: int
         """
+        if self.cachedDic.has_key(key):
+            self.operationCount += 1
+            c = self.cachedDic[key]
+            c[countKey] += 1
+            c[historyKey] = self.operationCount
+            self.updateEvitKeys(key)
+            return c[valueKey]
+        else:
+            return -1
+
 
     def put(self, key, value):
         """
@@ -54,7 +99,47 @@ class LFUCache(object):
         :type value: int
         :rtype: void
         """
+        if self.capacity == 0:
+            return
+        self.operationCount += 1
+        if self.cachedDic.has_key(key):
+            c = self.cachedDic[key]
+            c[valueKey] = value
+            c[countKey] += 1
+            c[historyKey] = self.operationCount
+            self.updateEvitKeys(key)
+        else:
+            if len(self.cachedDic.keys()) == self.capacity:
+                theEvitKey = self.getKeyToEvicts()
+                del self.cachedDic[theEvitKey]
+                self.evitKeys.remove(theEvitKey)
+            c = {}
+            c[valueKey] = value
+            c[countKey] = 1
+            c[historyKey] = self.operationCount
+            self.cachedDic[key] = c
+            self.updateEvitKeys(key, isNew=True)
 
+    def getKeyToEvicts(self):
+        """
+        :rtype: int
+        """
+        if len(self.evitKeys) > 1:
+            theLeastRecentKey = None
+            thePositionOfKey = None
+            for key in self.evitKeys:
+                c = self.cachedDic[key]
+                if thePositionOfKey == None:
+                    thePositionOfKey = c[historyKey]
+                    theLeastRecentKey = key
+                    continue
+                if thePositionOfKey > c[historyKey]:
+                    thePositionOfKey = c[historyKey]
+                    theLeastRecentKey = key
+
+            return theLeastRecentKey
+        else:
+            return self.evitKeys[0]
 
 # Your LFUCache object will be instantiated and called as such:
 # obj = LFUCache(capacity)
@@ -62,7 +147,21 @@ class LFUCache(object):
 # obj.put(key,value)
 
 def main():
-    pass
+    operations = ["LFUCache","put","put","put","put","get","get","get","get","put","get","get","get","get","get"]
+    inputs = [[3],[1,1],[2,2],[3,3],[4,4],[4],[3],[2],[1],[5,5],[1],[2],[3],[4],[5]]
+
+    cache = LFUCache(inputs[0][0])
+
+    for opIndex in range(1, len(operations)):
+        op = operations[opIndex]
+        data = inputs[opIndex]
+        if op == "put":
+            cache.put(data[0], data[1])
+            print None
+        elif op == "get":
+            print cache.get(data[0])
+
+    print cache.cachedDic
 
 if __name__ == '__main__':
     main()
