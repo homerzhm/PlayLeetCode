@@ -28,11 +28,171 @@ Test Case:
 
 """
 
+"""
+    Using List Node
+"""
+
+class ListNode(object):
+    def __init__(self, val, key):
+        self.val = val
+        self.key = key
+        self.prev = None
+        self.next = None
+
+    def connectToNext(self, nextNode):
+        #print "Connecting :", self.key, " to :", nextNode.key
+        self.next = nextNode
+        nextNode.prev = self
+
+    def printItSelf(self):
+        print "Key: " + self.key + " value:"+self.val
+
+class LFUCache(object):
+
+    def __init__(self, capacity):
+
+        if capacity < 0:
+            capacity = 0
+
+        self.capcity = capacity
+
+        #dic for store the head node for this frequency
+        self.fdNodes = {}
+
+        #place holder for list node structure
+        self.header = ListNode(None, None)
+        self.tail = ListNode(None, None)
+        self.header.connectToNext(self.tail)
+
+        #dic for key to Node and frequency
+        self.cachedDic = {}
+
+    def get(self, key):
+        """
+        :type key: int
+        :rtype: int
+        """
+        if key in self.cachedDic:
+            node, fre = self.cachedDic[key]
+            self.cachedDic[key] = [node, fre + 1]
+            #print "connecting tmp:", node.key
+            tmpNode = ListNode(node.val, "tmp")
+            self.cachedDic["tmp"] = [tmpNode, fre]
+            node.prev.connectToNext(tmpNode)
+            tmpNode.connectToNext(node.next)
+            if self.fdNodes[fre].key == node.key:
+                #print "update curret fre to tmp:",fre
+                self.fdNodes[fre] = tmpNode
+
+            self.moveNodeForward(node, fre + 1)
+            #print "in get tmp prev:", tmpNode.prev.key, " tmp next:", tmpNode.next.key
+            tmpNode.prev.connectToNext(tmpNode.next)
+            self.removeKey("tmp")
+            #need to update fdNodes Dic and the whole list node
+            return node.val
+        else:
+            return -1
+
+    def put(self, key, value):
+        """
+        :type key: int
+        :type value: int
+        :rtype: void
+        """
+
+        if self.capcity == 0:
+            return
+
+        if key in self.cachedDic:
+            node, fre = self.cachedDic[key]
+            node.val = value
+            self.cachedDic[key] = [node, fre + 1]
+
+            #print "connecting tmp:", node.key
+            tmpNode = ListNode(node.val, "tmp")
+            self.cachedDic["tmp"] = [tmpNode, fre]
+            node.prev.connectToNext(tmpNode)
+            tmpNode.connectToNext(node.next)
+            if self.fdNodes[fre].key == node.key:
+                self.fdNodes[fre] = tmpNode
+
+            self.moveNodeForward(node, fre + 1)
+            #print "tmp prev:", tmpNode.prev.key, " tmp next:", tmpNode.next.key
+            tmpNode.prev.connectToNext(tmpNode.next)
+            self.removeKey("tmp")
+        else:
+            if len(self.cachedDic.keys()) >= self.capcity:
+                #need to evite LFU Key
+                eviteNode = self.tail.prev
+                # print "eviting:", self.cachedDic
+                #print "evit Node:" , eviteNode.key, " count:", self.cachedDic[eviteNode.key]
+                # print "hell,,,,,",self.header.next
+                eviteNode.prev.connectToNext(self.tail)
+                self.removeKey(eviteNode.key)
+
+            newNode = ListNode(value, key)
+            fre = 1
+            self.cachedDic[key] = [newNode, fre]
+
+            if fre in self.fdNodes:
+                #print "creating new??", fre
+                #print self.fdNodes[fre].key
+                firstInFre = self.fdNodes[fre]
+
+                preNode = firstInFre.prev
+
+                preNode.connectToNext(newNode)
+                newNode.connectToNext(firstInFre)
+                self.fdNodes[fre] = newNode
+            else:
+                self.fdNodes[fre] = newNode
+                prevNode = self.tail.prev
+                prevNode.connectToNext(newNode)
+                newNode.connectToNext(self.tail)
+            pass
+
+    def removeKey(self, key):
+        #print "removing key:", key, " and fre:", self.cachedDic[key][1]
+        fre = self.cachedDic[key][1]
+        if fre in self.fdNodes and self.fdNodes[fre].key == key:
+            #print "hit:", key, "fre :", fre
+            firstNode = self.fdNodes[fre]
+            if firstNode.next.key in self.cachedDic and self.cachedDic[firstNode.next.key][1] == fre:
+                self.fdNodes[fre] = firstNode.next
+            else:
+                del self.fdNodes[fre]
+        del self.cachedDic[key]
+
+        pass
+
+    def moveNodeForward(self, node, fre):
+        #print "moving forward:", fre, " node:", node.key
+        if fre in self.fdNodes:
+            currentFirstNode = self.fdNodes[fre]
+            #print "fre in the node:", currentFirstNode.key , " fre:", fre
+            prevFN = currentFirstNode.prev
+            prevFN.connectToNext(node)
+            node.connectToNext(currentFirstNode)
+            #print currentFirstNode.prev.key, " key:", currentFirstNode.key
+            self.fdNodes[fre] = node
+        else:
+            #print  "new fre"
+            self.fdNodes[fre] = node
+            currentNextNode = self.fdNodes[fre - 1]
+            prevCNN = currentNextNode.prev
+            prevCNN.connectToNext(node)
+            node.connectToNext(currentNextNode)
+        pass
+
+"""
+    My Solution
+"""
+
 valueKey = "valueKey"
 countKey = "countKey"
 historyKey = "historyKey"
 
-class LFUCache(object):
+class LFUCache_Mine(object):
 
     def __init__(self, capacity):
         """
@@ -48,6 +208,7 @@ class LFUCache(object):
     def updateEvitKeys(self, key, isNew = False):
         if isNew:
             shouldReCreate = False
+
             for index in self.evitKeys:
                 if self.cachedDic[index][countKey] != 1:
                     shouldReCreate = True
@@ -124,6 +285,7 @@ class LFUCache(object):
         """
         :rtype: int
         """
+
         if len(self.evitKeys) > 1:
             theLeastRecentKey = None
             thePositionOfKey = None
@@ -147,8 +309,24 @@ class LFUCache(object):
 # obj.put(key,value)
 
 def main():
-    operations = ["LFUCache","put","put","put","put","get","get","get","get","put","get","get","get","get","get"]
-    inputs = [[3],[1,1],[2,2],[3,3],[4,4],[4],[3],[2],[1],[5,5],[1],[2],[3],[4],[5]]
+    operations = ["LFUCache", "put", "put", "put", "put", "put", "get", "put", "get", "get", "put", "get", "put", "put", "put",
+     "get", "put", "get", "get", "get", "get", "put", "put", "get", "get", "get", "put", "put", "get", "put", "get",
+     "put", "get", "get", "get", "put", "put", "put", "get", "put", "get", "get", "put", "put", "get", "put", "put",
+     "put", "put", "get", "put", "put", "get", "put", "put", "get", "put", "put", "put", "put", "put", "get", "put",
+     "put", "get", "put", "get", "get", "get", "put", "get", "get", "put", "put", "put", "put", "get", "put", "put",
+     "put", "put", "get", "get", "get", "put", "put", "put", "get", "put", "put", "put", "get", "put", "put", "put",
+     "get", "get", "get", "put", "put", "put", "put", "get", "put", "put", "put", "put", "put", "put", "put"]
+    inputs = [[10], [10, 13], [3, 17], [6, 11], [10, 5], [9, 10], [13], [2, 19], [2], [3], [5, 25], [8], [9, 22], [5, 5],
+     [1, 30], [11], [9, 12], [7], [5], [8], [9], [4, 30], [9, 3], [9], [10], [10], [6, 14], [3, 1], [3], [10, 11], [8],
+     [2, 14], [1], [5], [4], [11, 4], [12, 24], [5, 18], [13], [7, 23], [8], [12], [3, 27], [2, 12], [5], [2, 9],
+     [13, 4], [8, 18], [1, 7], [6], [9, 29], [8, 21], [5], [6, 30], [1, 12], [10], [4, 15], [7, 22], [11, 26], [8, 17],
+     [9, 29], [5], [3, 4], [11, 30], [12], [4, 29], [3], [9], [6], [3, 4], [1], [10], [3, 29], [10, 28], [1, 20],
+     [11, 13], [3], [3, 12], [3, 8], [10, 9], [3, 26], [8], [7], [5], [13, 17], [2, 27], [11, 15], [12], [9, 19],
+     [2, 15], [3, 16], [1], [12, 17], [9, 1], [6, 19], [4], [5], [5], [8, 1], [11, 7], [5, 2], [9, 28], [1], [2, 2],
+     [7, 4], [4, 22], [7, 24], [9, 26], [13, 28], [11, 26]]
+
+    # operations = ["LFUCache","put","put","get","put","get","get","put","get","get","get"]
+    # inputs = [[2],[1,1],[2,2],[1],[3,3],[2],[3],[4,4],[1],[3],[4]]
 
     cache = LFUCache(inputs[0][0])
 
@@ -158,10 +336,14 @@ def main():
         if op == "put":
             cache.put(data[0], data[1])
             print None
-        elif op == "get":
-            print cache.get(data[0])
+            #print str(cache.cachedDic)
 
-    print cache.cachedDic
+        elif op == "get":
+
+            print cache.get(data[0])
+            #print str(cache.cachedDic)
+
+    print str(cache.cachedDic)
 
 if __name__ == '__main__':
     main()
