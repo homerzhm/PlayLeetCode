@@ -64,8 +64,7 @@ class Solution(object):
 
     def __init__(self):
         self.topValueCache = {}
-        self.bottomValueCache = {}
-        self.currentCache = None
+        self.endValue = None
 
     def solution1(self, start, end, bank):
 
@@ -73,42 +72,20 @@ class Solution(object):
             return -1
 
         topList = bank[:]
-        botList = bank[:]
-
+        self.endValue = end
         startNode = TreeNote(start, None)
-        endNode = TreeNote(end, None)
 
-        topList.remove(end)
-        botList.remove(end)
-
-        self.currentCache = self.topValueCache
         self.composeTree(startNode, topList)
-
-        self.currentCache = self.bottomValueCache
-        self.composeTree(endNode, botList)
 
         if self.checkWhetherIsOnMutation(start, end):
             return 1
         elif len(startNode.childNodes) == 0 and len(endNode.childNodes) == 0:
             return -1
 
-        smallestMuta = None
-        for key in self.topValueCache:
-            if key in self.bottomValueCache:
-                if smallestMuta == None:
-                    smallestMuta = self.topValueCache[key] + self.bottomValueCache[key]
-                else:
-                    if smallestMuta > self.topValueCache[key] + self.bottomValueCache[key]:
-                        smallestMuta = self.topValueCache[key] + self.bottomValueCache[key]
-
-        print self.topValueCache
-        print self.bottomValueCache
-
-
-        if smallestMuta == None:
-            return -1
+        if self.endValue in self.topValueCache:
+            return self.topValueCache[self.endValue]
         else:
-            return smallestMuta
+            return -1
 
     def composeTree(self, rootNode, data_set):
 
@@ -116,23 +93,28 @@ class Solution(object):
 
         for i in range(0, len(data_set)):
             value = data_set[i]
-            print "checking :", rootNode.val, " value:", value
+
             if self.checkWhetherIsOnMutation(value, rootNode.val):
                 needToRemove.append(value)
                 newNode = TreeNote(value, rootNode)
-                if value in self.currentCache:
-                    if self.currentCache[value] > newNode.level:
-                        self.currentCache[value] = newNode.level
-                else:
-                    self.currentCache[value] = newNode.level
-
                 rootNode.addChildTreeNode(newNode)
+                #print "tree node :", value, " level :", newNode.level, " rootNode:", rootNode.val, " level:", rootNode.level
+                if self.endValue == value:
+                    if value in self.topValueCache:
+                        #print "current Cache:", self.topValueCache[value]
+                        if self.topValueCache[value] > newNode.level:
+                            self.topValueCache[value] = newNode.level
+                    else:
+                        #print "current Cache:", newNode.level
+                        self.topValueCache[value] = newNode.level
 
         for item in needToRemove:
             data_set.remove(item)
 
+        new_data_set = data_set[:]
         for childNode in rootNode.childNodes:
-            self.composeTree(childNode, data_set)
+            #print "composing childNode:", childNode.val, " level:", childNode.level
+            self.composeTree(childNode, new_data_set)
 
 
 
@@ -155,9 +137,9 @@ def main():
     end = "AAACGGTA"
     bank = ["AACCGATT", "AACCGATA", "AAACGATA", "AAACGGTA"]
 
-    start = "AACCGGTT"
-    end = "AACCGGTA"
-    bank = ["AACCGGTA", "AACCGCTA", "AAACGGTA"]
+    start = "AAAACCCC"
+    end = "CCCCCCCC"
+    bank = ["AAAACCCA", "AAACCCCA", "AACCCCCA", "AACCCCCC", "ACCCCCCC", "CCCCCCCC", "AAACCCCC", "AACCCCCC"]
 
     s = Solution()
     print s.minMutation(start, end, bank)
